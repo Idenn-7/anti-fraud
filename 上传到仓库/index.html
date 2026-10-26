@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>校园反诈小卫士 · 校园场景反诈提醒</title>
+<meta name="description" content="粘贴一段可疑话术，30 秒判断是不是诈骗。覆盖刷单兼职、二手交易、奖助学金、校园贷四类高发骗局。">
+<meta name="theme-color" content="#17527A">
+<style>
+  :root{
+    color-scheme: light;
+    --ink:#12212E;
+    --ink-2:#43586B;
+    --ink-3:#7D8FA0;
+    --line:#E3E9EF;
+    --bg:#EDF1F5;
+    --card:#FFFFFF;
+    --brand:#17527A;
+    --brand-2:#2E86AB;
+    --safe:#2E7D5B;
+    --warn:#C97A15;
+    --risk:#C0392B;
+    --risk-bg:#FCEEEC;
+    --warn-bg:#FDF4E6;
+    --safe-bg:#EAF4EF;
+    --radius:16px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color:var(--ink);
+    display:flex;align-items:center;justify-content:center;
+    padding:24px 16px;
+  }
+  /* ---------- phone shell ---------- */
+  .phone{
+    width:390px;height:800px;background:#0B1520;border-radius:44px;
+    padding:10px;position:relative;
+    box-shadow:0 30px 60px -18px rgba(17,35,52,.45), 0 0 0 1px rgba(255,255,255,.4) inset;
+    flex:none;
+  }
+  .screen{
+    width:100%;height:100%;background:var(--card);border-radius:35px;overflow:hidden;
+    position:relative;display:flex;flex-direction:column;
+  }
+  .notch{
+    position:absolute;top:8px;left:50%;transform:translateX(-50%);
+    width:120px;height:26px;background:#0B1520;border-radius:0 0 16px 16px;z-index:40;
+  }
+  /* ---------- status bar ---------- */
+  .statusbar{
+    height:44px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;
+    padding:0 22px 6px;font-size:13px;font-weight:600;color:var(--ink);z-index:30;
+  }
+  .statusbar .right{display:flex;gap:5px;align-items:center;font-size:11px}
+  .bars{display:flex;gap:2px;align-items:flex-end;height:11px}
+  .bars i{display:block;width:3px;background:var(--ink);border-radius:1px}
+  .bars i:nth-child(1){height:4px}.bars i:nth-child(2){height:6px}
+  .bars i:nth-child(3){height:8px}.bars i:nth-child(4){height:10px}
+  .batt{width:22px;height:11px;border:1.5px solid var(--ink);border-radius:3px;position:relative;padding:1.5px}
+  .batt::after{content:"";display:block;height:100%;width:72%;background:var(--ink);border-radius:1px}
+  .batt::before{content:"";position:absolute;right:-4px;top:3px;width:2px;height:5px;background:var(--ink);border-radius:0 1px 1px 0}
+
+  /* ---------- app header ---------- */
+  .appbar{
+    flex:none;padding:4px 20px 14px;background:var(--brand);color:#fff;
+    border-radius:0 0 22px 22px;position:relative;
+  }
+  .appbar h1{margin:0;font-size:19px;font-weight:700;letter-spacing:.5px}
+  .appbar p{margin:5px 0 0;font-size:12px;opacity:.75;letter-spacing:.3px}
+  .appbar.plain{background:#fff;color:var(--ink);border-radius:0;border-bottom:1px solid var(--line);padding-bottom:12px}
+  .appbar.plain p{opacity:1;color:var(--ink-3)}
+
+  /* ---------- scroll body ---------- */
+  .body{flex:1;overflow-y:auto;padding:16px 16px 96px;background:#F7F9FB;scroll-behavior:smooth}
+  .body::-webkit-scrollbar{width:0}
+
+  .page{display:none}
+  .page.on{display:block;animation:fade .22s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* ---------- cards ---------- */
+  .card{background:var(--card);border-radius:var(--radius);padding:16px;border:1px solid var(--line);margin-bottom:12px}
+  .sec-title{font-size:13px;color:var(--ink-3);font-weight:600;margin:18px 4px 10px;letter-spacing:.5px}
+
+  /* hero */
+  .hero{
+    background:linear-gradient(135deg,#17527A 0%,#2E86AB 100%);
+    color:#fff;border-radius:20px;padding:20px;position:relative;overflow:hidden;
+  }
+  .hero::after{
+    content:"";position:absolute;right:-30px;top:-30px;width:150px;height:150px;
+    border-radius:50%;background:rgba(255,255,255,.08);
+  }
+  .hero h2{margin:0 0 6px;font-size:17px;font-weight:700}
+  .hero p{margin:0 0 16px;font-size:12.5px;line-height:1.6;opacity:.85}
+  .hero .cta{
+    display:inline-block;background:#fff;color:var(--brand);font-size:14px;font-weight:700;
+    padding:11px 22px;border-radius:99px;border:none;cursor:pointer;
+    box-shadow:0 6px 16px -6px rgba(0,0,0,.35);
+  }
+  .hero .cta:active{transform:scale(.97)}
+
+  /* stat row */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:4px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 10px;text-align:center}
+  .stat b{display:block;font-size:18px;color:var(--brand);font-weight:800;letter-spacing:-.5px}
+  .stat span{font-size:11px;color:var(--ink-3)}
+
+  /* grid entries */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .tile{
+    background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 14px;cursor:pointer;transition:.16s;position:relative;overflow:hidden;
+  }
+  .tile:active{transform:scale(.975);border-color:#C9D6E2}
+  .tile .ico{
+    width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+    font-size:19px;margin-bottom:10px;background:#EAF1F6;
+  }
+  .tile b{display:block;font-size:14px;font-weight:700;margin-bottom:4px}
+  .tile span{font-size:11.5px;color:var(--ink-3);line-height:1.5}
+
+  /* list rows */
+  .row{
+    display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);
+    border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer;transition:.16s;
+  }
+  .row:active{transform:scale(.985);border-color:#C9D6E2}
+  .row .dot{width:8px;height:8px;border-radius:50%;background:var(--brand-2);flex:none}
+  .row .txt{flex:1;min-width:0}
+  .row b{display:block;font-size:14px;font-weight:600}
+  .row small{display:block;font-size:11.5px;color:var(--ink-3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .arrow{color:#C3CFDA;font-size:16px}
+
+  /* textarea / input */
+  textarea{
+    width:100%;min-height:130px;border:1px solid var(--line);border-radius:14px;padding:14px;
+    font-family:inherit;font-size:13.5px;line-height:1.7;resize:none;outline:none;color:var(--ink);
+    background:#FBFCFD;
+  }
+  textarea:focus{border-color:var(--brand-2);background:#fff}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0}
+  .chip{
+    font-size:12px;padding:7px 13px;border-radius:99px;background:#fff;border:1px solid var(--line);
+    color:var(--ink-2);cursor:pointer;
+  }
+  .chip:active{background:#EAF1F6}
+  .btn{
+    width:100%;padding:15px;border-radius:14px;border:none;background:var(--brand);color:#fff;
+    font-size:15px;font-weight:700;cursor:pointer;margin-top:14px;letter-spacing:.5px;
+    box-shadow:0 8px 20px -10px rgba(23,82,122,.9);
+  }
+  .btn:active{transform:scale(.985)}
+  .btn.ghost{background:#fff;color:var(--brand);border:1px solid #C9D6E2;box-shadow:none}
+
+  /* result */
+  .result{border-radius:16px;padding:16px;margin-top:16px;display:none}
+  .result.on{display:block;animation:fade .25s ease}
+  .result.high{background:var(--risk-bg);border:1px solid #F3C9C3}
+  .result.mid{background:var(--warn-bg);border:1px solid #F2DDB8}
+  .result.low{background:var(--safe-bg);border:1px solid #C4E0D2}
+  .result .lv{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;margin-bottom:8px}
+  .result.high .lv{color:var(--risk)}
+  .result.mid .lv{color:var(--warn)}
+  .result.low .lv{color:var(--safe)}
+  .result ul{margin:8px 0 0;padding-left:18px;font-size:12.5px;line-height:1.85;color:var(--ink-2)}
+  .hit{display:inline-block;background:rgba(192,57,43,.1);color:var(--risk);font-size:11.5px;
+       padding:3px 9px;border-radius:6px;margin:3px 4px 0 0}
+
+  /* scene detail */
+  .back{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--brand);
+        cursor:pointer;margin-bottom:12px;font-weight:600}
+  .story{background:#FBFCFD;border:1px solid var(--line);border-radius:14px;padding:14px;
+         font-size:13px;line-height:1.85;color:var(--ink-2);margin-bottom:12px}
+  .kv{display:flex;gap:10px;font-size:12.5px;line-height:1.8;color:var(--ink-2);margin-top:8px}
+  .kv b{color:var(--ink);flex:none;width:56px}
+
+  /* quiz */
+  .q-prog{height:5px;background:#E6EDF3;border-radius:99px;overflow:hidden;margin-bottom:16px}
+  .q-prog i{display:block;height:100%;background:var(--brand-2);border-radius:99px;transition:.3s}
+  .q-num{font-size:11.5px;color:var(--ink-3);margin-bottom:8px;letter-spacing:.5px}
+  .q-text{font-size:15px;font-weight:700;line-height:1.6;margin-bottom:16px}
+  .opt{
+    border:1px solid var(--line);background:#fff;border-radius:14px;padding:14px;
+    font-size:13.5px;line-height:1.6;margin-bottom:10px;cursor:pointer;transition:.15s;color:var(--ink-2);
+  }
+  .opt:active{transform:scale(.99)}
+  .opt.right{border-color:var(--safe);background:var(--safe-bg);color:var(--safe);font-weight:600}
+  .opt.wrong{border-color:var(--risk);background:var(--risk-bg);color:var(--risk);font-weight:600}
+  .explain{font-size:12.5px;line-height:1.8;color:var(--ink-2);background:#FBFCFD;
+           border-left:3px solid var(--brand-2);padding:12px 14px;border-radius:0 10px 10px 0;margin-top:6px}
+
+  /* tabbar */
+  .tabbar{
+    position:absolute;left:0;right:0;bottom:0;height:72px;background:rgba(255,255,255,.94);
+    backdrop-filter:blur(12px);border-top:1px solid var(--line);
+    display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:12px;
+  }
+  .tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+       cursor:pointer;color:#9AAAB8;font-size:10.5px;font-weight:600;padding-top:8px}
+  .tab .ti{font-size:19px;line-height:1}
+  .tab.on{color:var(--brand)}
+
+  /* sheet */
+  .mask{position:absolute;inset:0;background:rgba(12,24,36,.42);display:none;z-index:60;align-items:flex-end}
+  .mask.on{display:flex}
+  .sheet{width:100%;background:#fff;border-radius:22px 22px 0 0;padding:22px 20px 28px;animation:up .25s ease}
+  @keyframes up{from{transform:translateY(60px);opacity:.4}to{transform:none;opacity:1}}
+  .sheet .h{font-size:16px;font-weight:800;margin:0 0 6px}
+  .sheet .s{font-size:12.5px;color:var(--ink-3);line-height:1.75;margin:0 0 16px}
+  .sheet .rowq{display:flex;justify-content:space-between;font-size:13px;padding:12px 0;border-bottom:1px solid var(--line);color:var(--ink-2)}
+  .sheet .rowq b{color:var(--ink);font-weight:600}
+
+
+  mark{background:#FFE3DE;color:#B03A2B;border-radius:4px;padding:0 3px;font-weight:600}
+  .scoreline{font-size:11.5px;color:#7D8FA0;margin-left:auto;font-weight:600}
+  .chips2{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+  .gchip{font-size:11.5px;padding:5px 11px;border-radius:8px;background:rgba(192,57,43,.09);color:#B03A2B;font-weight:600}
+  .result.mid .gchip{background:rgba(201,122,21,.12);color:#A96612}
+  .result.low .gchip{background:rgba(46,125,91,.12);color:#2E7D5B}
+  .pat{border-top:1px dashed rgba(0,0,0,.1);padding-top:10px;margin-top:10px}
+  .pat:first-of-type{border-top:none;padding-top:0;margin-top:6px}
+  .pat b{font-size:13px;color:var(--ink);display:block;margin-bottom:3px}
+  .pat span{font-size:12px;line-height:1.75;color:var(--ink-2)}
+  .entline{font-size:12px;color:var(--ink-2);margin-top:6px}
+  .entline em{font-style:normal;background:#EAF1F6;color:#17527A;border-radius:6px;padding:2px 8px;margin-right:6px;font-weight:600}
+  .hlbox{font-size:12.5px;line-height:1.9;color:var(--ink-2);background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:10px;padding:12px;margin-top:10px}
+
+  /* ---- 手机端：直接铺满屏幕，不显示外壳 ---- */
+  @media (max-width: 480px){
+    body{padding:0;display:block}
+    .phone{width:100%;height:100vh;border-radius:0;padding:0;box-shadow:none}
+    .screen{border-radius:0}
+    .notch{display:none}
+    .statusbar{display:none}
+  }
+  .tagline{font-size:11px;color:var(--ink-3);text-align:center;margin-top:22px;letter-spacing:.5px}
+  .disclaimer{font-size:10.5px;color:#9AAAB8;line-height:1.7;text-align:center;margin-top:10px;padding:0 12px}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="notch"></div>
+  <div class="screen">
+
+    <!-- status bar -->
+    <div class="statusbar">
+      <span>9:41</span>
+      <span class="right">
+        <span class="bars"><i></i><i></i><i></i><i></i></span>
+        <span>5G</span>
+        <span class="batt"></span>
+      </span>
+    </div>
+
+    <!-- ================= HOME ================= -->
+    <div id="hdr-home" class="appbar">
+      <h1>校园反诈小卫士</h1>
+      <p>遇到可疑的事，先查一下</p>
+    </div>
+
+    <div class="body" id="body">
+      <section class="page on" id="p-home">
+        <div class="hero">
+          <h2>这笔钱，先别转</h2>
+          <p>输入对方的话术或链接，30 秒判断是不是骗局。</p>
+          <button class="cta" onclick="go('check')">立即检测</button>
+        </div>
+
+        <div class="sec-title">常见校园骗局</div>
+        <div class="grid2">
+          <div class="tile" onclick="openScene(0)">
+            <div class="ico">🧾</div><b>刷单兼职</b><span>高薪日结、垫付返利</span>
+          </div>
+          <div class="tile" onclick="openScene(1)">
+            <div class="ico">📦</div><b>二手交易</b><span>脱离平台私下转账</span>
+          </div>
+          <div class="tile" onclick="openScene(2)">
+            <div class="ico">🎓</div><b>奖助学金</b><span>交手续费才发放</span>
+          </div>
+          <div class="tile" onclick="openScene(3)">
+            <div class="ico">💳</div><b>校园贷</b><span>低息放款、先交保证金</span>
+          </div>
+        </div>
+
+        <div class="sec-title">今日提示</div>
+        <div class="card">
+          <div style="font-size:13.5px;line-height:1.85;color:var(--ink-2)">
+            任何要求你<b style="color:var(--ink)">先垫钱、先交费、扫陌生码、共享屏幕</b>的“兼职”“退款”“核验”，都可以直接判定为高风险。
+          </div>
+        </div>
+
+        <div class="sec-title">官方工具</div>
+        <div class="row" onclick="openSheet()">
+          <span class="dot" style="background:#C0392B"></span>
+          <span class="txt"><b>前往国家反诈中心</b><small>下载官方 App，开启来电预警</small></span>
+          <span class="arrow">›</span>
+        </div>
+        <div class="disclaimer" style="margin-top:16px">
+          本小程序为课程设计原型，风险判定基于规则库比对，不构成法律意见。
+        </div>
+      </section>
+
+      <!-- ================= SCENES ================= -->
+      <section class="page" id="p-scenes">
+        <div class="sec-title" style="margin-top:0">场景速查库</div>
+        <div id="scene-list"></div>
+
+        <div id="scene-detail" style="display:none">
+          <div class="back" onclick="closeScene()">‹ 返回列表</div>
+          <div class="card">
+            <div style="font-size:17px;font-weight:800;margin-bottom:4px" id="sd-title"></div>
+            <div style="font-size:11.5px;color:var(--ink-3);margin-bottom:14px" id="sd-sub"></div>
+            <div class="story" id="sd-story"></div>
+            <div style="font-size:13px;font-weight:700;margin:16px 0 6px">避坑要点</div>
+            <div id="sd-points"></div>
+            <div style="font-size:13px;font-weight:700;margin:18px 0 6px">如果你已经中招</div>
+            <div class="kv"><b>第一步</b><span>立即停止转账，保留全部聊天记录、转账凭证、对方账号截图。</span></div>
+            <div class="kv"><b>第二步</b><span>拨打 110 或到辖区派出所报案，同时联系银行尝试止付。</span></div>
+            <div class="kv"><b>第三步</b><span>告知辅导员与家长，不要因为怕被责怪而独自处理。</span></div>
+          </div>
+          <button class="btn ghost" onclick="go('check')">用这个场景去检测一段话术</button>
+        </div>
+      </section>
+
+      <!-- ================= CHECK ================= -->
+      <section class="page" id="p-check">
+        <div class="sec-title" style="margin-top:0">风险一键检测</div>
+        <div class="card">
+          <div style="font-size:13px;color:var(--ink-2);line-height:1.7;margin-bottom:12px">
+            把对方说过的话、发过的链接粘贴进来，系统会比对高风险特征并给出处置建议。
+          </div>
+          <textarea id="input" placeholder="例如：您好，您的账户被误设为代理商，需要先缴纳 3000 元保证金，稍后全额退还，请添加客服微信办理…"></textarea>
+          <div class="chips">
+            <span class="chip" onclick="fill(this)">帮我看看这段话术</span>
+            <span class="chip" onclick="fill(this)">先交保证金的兼职</span>
+            <span class="chip" onclick="fill(this)">扫码退款</span>
+          </div>
+          <button class="btn" onclick="analyze()">开始检测</button>
+        </div>
+
+        <div class="result" id="res"><div id="res-inner"></div></div>
+          <div id="res-hits"></div>
+          <ul id="res-tips"></ul>
+        </div>
+        <div class="disclaimer">
+          本检测基于规则库比对，仅供风险提示，不构成法律意见。最终以公安机关认定为准。
+        </div>
+      </section>
+
+      <!-- ================= QUIZ ================= -->
+      <section class="page" id="p-quiz">
+        <div id="quiz-box">
+          <div class="q-prog"><i id="qbar" style="width:0%"></i></div>
+          <div class="q-num" id="qnum"></div>
+          <div class="q-text" id="qtext"></div>
+          <div id="qopts"></div>
+          <div id="qexp" style="display:none"></div>
+          <button class="btn" id="qnext" style="display:none" onclick="nextQ()">下一题</button>
+        </div>
+        <div id="quiz-end" style="display:none">
+          <div class="card" style="text-align:center;padding:30px 20px">
+            <div style="font-size:40px;margin-bottom:10px" id="end-emoji">🎉</div>
+            <div style="font-size:15px;font-weight:800;margin-bottom:6px" id="end-title"></div>
+            <div style="font-size:12.5px;color:var(--ink-3);line-height:1.8" id="end-desc"></div>
+          </div>
+          <button class="btn" onclick="startQuiz()">再测一次</button>
+          <button class="btn ghost" onclick="go('home')">回到首页</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- tabbar -->
+    <div class="tabbar">
+      <div class="tab on" data-tab="home" onclick="go('home')"><span class="ti">🏠</span>首页</div>
+      <div class="tab" data-tab="scenes" onclick="go('scenes')"><span class="ti">📚</span>场景库</div>
+      <div class="tab" data-tab="check" onclick="go('check')"><span class="ti">🔍</span>检测</div>
+      <div class="tab" data-tab="quiz" onclick="go('quiz')"><span class="ti">✍️</span>小测</div>
+    </div>
+
+    <!-- sheet -->
+    <div class="mask" id="mask" onclick="closeSheet(event)">
+      <div class="sheet" onclick="event.stopPropagation()">
+        <h3 class="h">前往国家反诈中心</h3>
+        <p class="s">建议安装官方 App，开启来电预警。涉及转账、核验、退款时，以官方渠道为准。</p>
+        <div class="rowq"><span>12381 涉诈预警劝阻短信</span><b>已开通</b></div>
+        <div class="rowq"><span>96110 反诈专线</span><b>可拨打</b></div>
+        <button class="btn" onclick="closeSheet()">我已知晓</button>
+        <button class="btn ghost" onclick="closeSheet()">稍后再说</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ---------------- navigation ---------------- */
+const HEADERS = {
+  home:   {cls:'', title:'校园反诈小卫士', sub:'遇到可疑的事，先查一下'},
+  scenes: {cls:'plain', title:'场景速查库', sub:'按场景查看真实套路与避坑要点'},
+  check:  {cls:'plain', title:'风险一键检测', sub:'粘贴话术或链接，快速判定风险'},
+  quiz:   {cls:'plain', title:'反诈小测试', sub:'5 道情景题，测测你的防骗直觉'}
+};
+
+function go(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  const el = document.getElementById('p-'+page);
+  if(el) el.classList.add('on');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===page));
+
+  const h = document.getElementById('hdr-home');
+  h.className = 'appbar ' + HEADERS[page].cls;
+  h.innerHTML = '<h1>'+HEADERS[page].title+'</h1><p>'+HEADERS[page].sub+'</p>';
+  document.getElementById('body').scrollTop = 0;
+}
+
+/* ---------------- scenes ---------------- */
+const SCENES = [
+  {
+    title:'刷单兼职', sub:'最高发 · 大学生群体',
+    story:'大一新生小林在群里看到“手机兼职，日结 200，无需经验”。对方让她先拍下 98 元的商品并好评，承诺本金+佣金一起返。第一次确实返了 118 元。第二次对方给她派了“三单连做”的任务，共 3800 元，说必须全部完成才能一起结算。小林借钱做完后，对方称“系统卡单”，要求再充 5000 元解锁。',
+    points:[
+      '任何要求<b>先垫付本金</b>的兼职，都是刷单诈骗，没有例外。',
+      '“连单任务”“卡单”“系统冻结”是同一套话术的三个阶段，出现任一即停止。',
+      '小额返利是诱饵，用来建立信任，不要用第一次的成功推断第二次的安全。'
+    ]
+  },
+  {
+    title:'二手私下交易', sub:'高频 · 闲鱼、校园墙、群聊',
+    story:'同学在校园墙挂出一台二手笔记本，很快有人联系说想要，但提出“平台抽成高，加微信直接转账给你，便宜 200”。对方发来一个“已付款”的截图，说资金被平台冻结，需要卖家点链接“解冻”。同学点进去后，页面要求输入银行卡号和短信验证码。',
+    points:[
+      '脱离平台私下转账，<b>没有任何平台保障</b>，平台也无法介入追回。',
+      '“已付款截图”可以伪造，一切以平台订单状态为准。',
+      '任何索要<b>短信验证码、银行卡密码、要求共享屏幕</b>的操作，都是诈骗。'
+    ]
+  },
+  {
+    title:'奖助学金诈骗', sub:'季节性 · 开学与评定前后',
+    story:'开学初，有同学收到“学生资助管理中心”的短信，称其助学金已审核通过，需要点击链接填写银行卡信息并缴纳 50 元“制卡费”。短信里的落款、格式都很像官方通知。',
+    points:[
+      '奖助学金的发放<b>不需要学生缴纳任何费用</b>，凡收费即为诈骗。',
+      '官方通知只会通过学校官网、辅导员、班级群等既有渠道发布，不会用陌生短链。',
+      '收到此类信息，先向辅导员或学生资助中心<b>当面/电话核实</b>，不要点链接。'
+    ]
+  },
+  {
+    title:'校园贷 / 注销校园贷', sub:'高风险 · 涉及征信恐吓',
+    story:'有同学接到自称“某平台客服”的电话，说其在校期间注册过校园贷账户，如今国家要求注销，否则影响征信。对方准确报出了同学的姓名、学校、身份证号，随后引导他下载会议软件“共享屏幕”，在借贷平台借款后转入“安全账户”完成注销。',
+    points:[
+      '“注销校园贷”“影响征信”是典型话术，<b>征信不会因为未注销账户而受损</b>。',
+      '能报出你的个人信息，不代表对方是官方，信息泄露本身很常见。',
+      '凡是要求<b>共享屏幕、下载会议软件、转账到“安全账户”</b>的，一律挂断。'
+    ]
+  }
+];
+
+function renderScenes(){
+  document.getElementById('scene-list').innerHTML = SCENES.map((s,i)=>`
+    <div class="row" onclick="openScene(${i})">
+      <span class="dot"></span>
+      <span class="txt"><b>${s.title}</b><small>${s.sub}</small></span>
+      <span class="arrow">›</span>
+    </div>`).join('');
+}
+
+function openScene(i){
+  const s = SCENES[i];
+  document.getElementById('scene-list').style.display='none';
+  document.getElementById('scene-detail').style.display='block';
+  document.getElementById('sd-title').textContent = s.title;
+  document.getElementById('sd-sub').textContent = s.sub;
+  document.getElementById('sd-story').innerHTML = s.story;
+  document.getElementById('sd-points').innerHTML =
+    s.points.map(p=>`<div class="kv"><b>·</b><span>${p}</span></div>`).join('');
+  document.getElementById('body').scrollTop = 0;
+}
+function closeScene(){
+  document.getElementById('scene-detail').style.display='none';
+  document.getElementById('scene-list').style.display='block';
+}
+
+/* ---------------- risk engine v2 ---------------- */
+const GROUPS = [
+  { key:'money', name:'要求先付钱', w:4, kw:['保证金','押金','保证','诚意金','解冻费','手续费','制卡费','激活费','垫付','垫资','先付','先交','先充','充值','解锁费','验证资金','刷流水','缴纳'] },
+  { key:'profit', name:'高收益诱导', w:3, kw:['刷单','返利','佣金','日结','日入','高薪','轻松','无需经验','稳赚','兼职','做任务','点赞','好评返','连单'] },
+  { key:'credential', name:'索要敏感信息', w:4, kw:['验证码','密码','银行卡号','身份证号','正反面','短信码','动态码','支付密码','卡号和','输密码'] },
+  { key:'screen', name:'要求共享屏幕', w:5, kw:['共享屏幕','屏幕共享','会议软件','远程协助','远程控制','下载app','下载会议','腾讯会议','钉钉','安装软件'] },
+  { key:'authority', name:'冒充官方身份', w:3, kw:['客服','公安','警察','检察院','法院','银行','资助中心','学校','老师','辅导员','官方','工作人员','快递员','理赔','客服中心','工商','税务'] },
+  { key:'urgency', name:'制造紧迫感', w:3, kw:['立即','马上','立刻','尽快','最后','今天内','否则','逾期','冻结','封号','影响征信','征信','24小时','限时','抓紧','错过'] },
+  { key:'offplatform', name:'引导脱离平台', w:3, kw:['加微信','私聊','脱离平台','私下转账','不要告诉','别告诉','单独联系','加qq','私加','加个微信','加我'] },
+  { key:'transfer', name:'要求转账', w:3, kw:['转账','汇款','打款','扫码','二维码','付款','支付','转过去','转到','扫一扫'] }
+];
+const PATTERNS = [
+  { name:'刷单返利诈骗', need:['profit','money'], bonus:6,
+    tip:'先垫付、再返利，是刷单诈骗的标准开局。小额返利是诱饵，不是安全证明。', act:'立即停止垫付，已投入的钱不要再追加。' },
+  { name:'冒充客服 / 退款理赔', need:['authority','credential'], bonus:5,
+    tip:'官方退款不会索要验证码、银行卡号和密码。', act:'挂断，从官方 App 或官网自行核实，不要用对方给的链接。' },
+  { name:'诱导共享屏幕', need:['screen'], bonus:5,
+    tip:'共享屏幕会把你输入的验证码、密码实时暴露给对方，是目前损失金额最高的套路。', act:'拒绝一切共享屏幕、远程协助的要求。' },
+  { name:'注销校园贷 / 征信恐吓', need:['authority','urgency'], bonus:3,
+    tip:'“影响征信”是恐吓话术，征信不会因为你没注销某个账户而受损。', act:'挂断，自行拨打官方客服或查询征信中心。' },
+  { name:'二手交易脱离平台', need:['offplatform','transfer'], bonus:4,
+    tip:'脱离平台私下转账，没有任何平台保障，平台也无法介入追回。', act:'坚持平台内交易，拒绝私下转账。' },
+  { name:'快递理赔私下联系', need:['authority','offplatform'], bonus:4,
+    tip:'正规理赔在平台或官方客服内完成，不会引导你去加私人微信。', act:'不要加对方微信，回原平台查看订单状态。' }
+];
+
+function normalize(text){
+  const out=[], map=[], seps=' .,，。*·-—_、/|\\\'"“”‘’()（）【】[]<>!！?？:：;；~';
+  for (let i=0;i<text.length;i++){
+    const c=text[i];
+    if (seps.indexOf(c)>=0) continue;
+    let ch=c.toLowerCase();
+    const code=ch.charCodeAt(0);
+    if (code>=0xFF01 && code<=0xFF5E) ch=String.fromCharCode(code-0xFEE0);
+    out.push(ch); map.push(i);
+  }
+  return { norm:out.join(''), map };
+}
+function findKw(hay, kwNorm, map){
+  const idx = hay.indexOf(kwNorm);
+  if (idx<0) return null;
+  return { s:map[idx], e:map[idx+kwNorm.length-1]+1 };
+}
+function detect(text){
+  const raw=(text||'').trim();
+  if(!raw) return { ok:false };
+  const n=normalize(raw), hay=n.norm;
+  const hitGroups=[]; let score=0; const spans=[];
+  GROUPS.forEach(G=>{
+    let ok=false; const used=[];
+    G.kw.forEach(k=>{
+      const sp=findKw(hay, normalize(k).norm, n.map);
+      if(sp){ ok=true; used.push(k); spans.push({s:sp.s,e:sp.e}); }
+    });
+    if(ok){ hitGroups.push({key:G.key,name:G.name,words:used}); score+=G.w; }
+  });
+  const keys=hitGroups.map(h=>h.key);
+  const hitPatterns=[];
+  PATTERNS.forEach(P=>{
+    if(P.need.every(k=>keys.indexOf(k)>=0)){ hitPatterns.push(P); score+=P.bonus; }
+  });
+  const ents=[];
+  const mAmount=raw.match(/(\d+(?:\.\d+)?)\s*(?:元|块|万元|万)/g);
+  if(mAmount) ents.push({type:'金额', val:mAmount.slice(0,3).join('、')});
+  const mPhone=raw.match(/1[3-9]\d{9}/g);
+  if(mPhone) ents.push({type:'手机号', val:mPhone[0]});
+  const mCard=raw.match(/\d{16,19}/g);
+  if(mCard) ents.push({type:'疑似银行卡号', val:mCard[0]});
+  const mUrl=raw.match(/(?:https?:\/\/|www\.)[^\s，。；]+/gi);
+  if(mUrl) ents.push({type:'链接', val:mUrl[0].slice(0,36)});
+  if(/二维码|扫码|扫一扫/.test(raw)) ents.push({type:'二维码', val:'引导扫码'});
+  if(ents.length) score += 2*ents.length;
+
+  let level, cls, title;
+  if(score>=13){ level='high'; cls='high'; title='高危 · 极可能是诈骗'; }
+  else if(score>=7){ level='mid'; cls='mid'; title='中危 · 存在多处可疑特征'; }
+  else { level='low'; cls='low'; title='低危 · 暂未命中明显套路'; }
+
+  let acts;
+  if(level==='high'){
+    acts=['立即停止一切转账和充值，不要为了“解锁”“解冻”再投入任何资金。',
+          '不要点击对方发来的链接，不要下载对方指定的会议或远程软件。',
+          '保存聊天记录与转账凭证，拨打 110 或 96110。',
+          '告知辅导员和家长，不要独自处理。'];
+  } else if(level==='mid'){
+    acts=['先不要转账，要求对方通过平台官方渠道或当面沟通。',
+          '凡是要求脱离平台、私下加微信的，直接拒绝。',
+          '向学校保卫处或辅导员核实对方身份。'];
+  } else {
+    acts=['暂未发现明显套路，但话术会不断变化，仍需保持警惕。',
+          '涉及转账、验证码、银行卡信息时，一律先核实再操作。',
+          '如有疑虑，可拨打 96110 咨询。'];
+  }
+  hitPatterns.forEach(p=>acts.push(p.act));
+
+  spans.sort((a,b)=>a.s-b.s);
+  const merged=[];
+  spans.forEach(c=>{
+    if(merged.length && c.s<=merged[merged.length-1].e)
+      merged[merged.length-1].e=Math.max(merged[merged.length-1].e,c.e);
+    else merged.push({s:c.s,e:c.e});
+  });
+  return { ok:true, level, cls, title, score, groups:hitGroups, patterns:hitPatterns, ents, acts, spans:merged };
+}
+
+const esc = t => t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function highlight(text, spans){
+  if(!spans.length) return esc(text);
+  let out='', last=0;
+  spans.forEach(sp=>{
+    out += esc(text.slice(last, sp.s)) + '<mark>' + esc(text.slice(sp.s, sp.e)) + '</mark>';
+    last = sp.e;
+  });
+  return out + esc(text.slice(last));
+}
+
+function analyze(){
+  const txt = document.getElementById('input').value;
+  const box = document.getElementById('res');
+  const inner = document.getElementById('res-inner');
+  const r = detect(txt);
+
+  if(!r.ok){
+    box.className = 'result on mid';
+    inner.innerHTML = '<div class="lv"><span>⚠️</span><span>请先输入要检测的内容</span></div>';
+    return;
+  }
+
+  box.className = 'result on ' + r.cls;
+  const icon = r.level==='high' ? '🚨' : r.level==='mid' ? '⚠️' : '✅';
+
+  let html = '<div class="lv"><span>'+icon+'</span><span>'+r.title+'</span>'
+           + '<span class="scoreline">风险分 '+r.score+'</span></div>';
+
+  if(r.groups.length){
+    html += '<div class="chips2">' + r.groups.map(g=>'<span class="gchip">'+g.name+'</span>').join('') + '</div>';
+  }
+
+  if(r.ents.length){
+    html += '<div class="entline">' + r.ents.map(e=>'<em>'+e.type+'</em>'+esc(e.val)).join('　') + '</div>';
+  }
+
+  html += '<div class="hlbox">' + highlight(txt, r.spans) + '</div>';
+
+  if(r.patterns.length){
+    html += r.patterns.map(p=>'<div class="pat"><b>命中套路 · '+p.name+'</b><span>'+p.tip+'</span></div>').join('');
+  }
+
+  html += '<ul>' + r.acts.map(a=>'<li>'+a+'</li>').join('') + '</ul>';
+  inner.innerHTML = html;
+  box.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function fill(el){
+  const map = {
+    '帮我看看这段话术':'您好，我是平台客服，检测到您的账户被误设为代理商，每月将自动扣费 500 元。如需取消，请添加客服微信，并提供您的银行卡号与短信验证码完成核验。',
+    '先交保证金的兼职':'我们是正规兼职平台，日结 200 元起，无需经验。入职前需要先缴纳 300 元保证金，做满三单后全额退还，另有一单 3800 元的连单任务。',
+    '扫码退款':'您的快递在运输中丢失，我们将为您双倍赔付。请扫描下方二维码填写收款信息，如页面提示失败，请下载会议软件共享屏幕由客服协助操作。'
+  };
+  document.getElementById('input').value = map[el.textContent] || el.textContent;
+}
+
+/* ---------------- quiz ---------------- */
+const QUESTIONS = [
+  {
+    q:'兼职群里有人说“先垫付 98 元拍单，马上返 118 元”，你该怎么做？',
+    o:['先做一单试试，反正只垫 98 元','直接拒绝并退群，这是刷单诈骗的诱饵','先做完再问对方要合同'],
+    a:1,
+    e:'小额返利是建立信任的诱饵，不是安全证明。刷单本身就违法，任何要求先垫付的兼职都是诈骗。'
+  },
+  {
+    q:'闲鱼买家说“平台抽成高，加微信直接转你”，你该怎么做？',
+    o:['加微信，能多赚 200 元','坚持平台内交易，拒绝私下转账','让对方先转一半定金'],
+    a:1,
+    e:'脱离平台就没有任何保障，平台也无法介入追回。“已付款截图”可以伪造，一切以平台订单状态为准。'
+  },
+  {
+    q:'收到“助学金已通过，缴 50 元制卡费即可发放”的短信，你该怎么做？',
+    o:['金额不大，缴了省事','点链接填银行卡信息','不点链接，向辅导员核实'],
+    a:2,
+    e:'奖助学金发放不需要学生缴纳任何费用，凡收费即为诈骗。官方通知不会用陌生短链。'
+  },
+  {
+    q:'自称平台客服让你下载会议软件并“共享屏幕”核验资金，你该怎么做？',
+    o:['配合操作，尽快解决问题','立即挂断，绝不共享屏幕','先共享，但把银行 App 关掉'],
+    a:1,
+    e:'共享屏幕会暴露验证码和密码，是当前损失金额最高的套路之一。任何要求共享屏幕的“核验”都是诈骗。'
+  },
+  {
+    q:'已经转出去 3000 元，发现被骗，第一件事应该做什么？',
+    o:['继续按对方要求操作，争取把钱要回来','立刻停止转账，保留证据并报警','先自己找对方理论，别惊动别人'],
+    a:1,
+    e:'止损优先。继续投入只会扩大损失；保留聊天记录、转账凭证后拨打 110，并同步告知辅导员与家长。'
+  }
+];
+
+let qi = 0, qscore = 0, locked = false;
+
+function startQuiz(){
+  qi = 0; qscore = 0;
+  document.getElementById('quiz-box').style.display='block';
+  document.getElementById('quiz-end').style.display='none';
+  renderQ();
+}
+
+function renderQ(){
+  locked = false;
+  const q = QUESTIONS[qi];
+  document.getElementById('qbar').style.width = ((qi)/QUESTIONS.length*100)+'%';
+  document.getElementById('qnum').textContent = `第 ${qi+1} / ${QUESTIONS.length} 题`;
+  document.getElementById('qtext').textContent = q.q;
+  document.getElementById('qopts').innerHTML = q.o.map((t,i)=>
+    `<div class="opt" data-i="${i}" onclick="pick(${i})">${String.fromCharCode(65+i)}. ${t}</div>`).join('');
+  document.getElementById('qexp').style.display='none';
+  document.getElementById('qnext').style.display='none';
+  document.getElementById('body').scrollTop = 0;
+}
+
+function pick(i){
+  if(locked) return;
+  locked = true;
+  const q = QUESTIONS[qi];
+  const opts = document.querySelectorAll('#qopts .opt');
+  opts.forEach((el,idx)=>{
+    if(idx===q.a) el.classList.add('right');
+    else if(idx===i) el.classList.add('wrong');
+  });
+  if(i===q.a) qscore++;
+  const exp = document.getElementById('qexp');
+  exp.className='explain'; exp.style.display='block';
+  exp.innerHTML = (i===q.a ? '<b style="color:#2E7D5B">回答正确。</b> ' : '<b style="color:#C0392B">回答错误。</b> ') + q.e;
+  const btn = document.getElementById('qnext');
+  btn.style.display='block';
+  btn.textContent = (qi===QUESTIONS.length-1) ? '查看结果' : '下一题';
+  document.getElementById('qbar').style.width = ((qi+1)/QUESTIONS.length*100)+'%';
+}
+
+function nextQ(){
+  if(qi < QUESTIONS.length-1){ qi++; renderQ(); }
+  else showEnd();
+}
+
+function showEnd(){
+  document.getElementById('quiz-box').style.display='none';
+  const box = document.getElementById('quiz-end');
+  box.style.display='block';
+  const full = QUESTIONS.length;
+  let emoji, title, desc;
+  if(qscore === full){ emoji='🛡️'; title='满分，防骗直觉很好'; desc='5 题全对。建议再去看一遍场景库，把套路记得更牢。'; }
+  else if(qscore >= 3){ emoji='👍'; title=`答对 ${qscore} / ${full} 题`; desc='基础不错，但仍有容易踩坑的地方，建议重点复习错题对应的场景。'; }
+  else { emoji='📖'; title=`答对 ${qscore} / ${full} 题`; desc='风险意识还需要加强。建议先把场景速查库完整看一遍，再来重测。'; }
+  document.getElementById('end-emoji').textContent = emoji;
+  document.getElementById('end-title').textContent = title;
+  document.getElementById('end-desc').textContent = desc;
+  document.getElementById('body').scrollTop = 0;
+}
+
+/* ---------------- sheet ---------------- */
+function openSheet(){ document.getElementById('mask').classList.add('on'); }
+function closeSheet(e){ if(!e || e.target.id==='mask' || e.target.tagName==='BUTTON') document.getElementById('mask').classList.remove('on'); }
+
+/* ---------------- init ---------------- */
+renderScenes();
+
+/* 视口较矮时整体缩放，避免手机壳被截断 */
+function fit(){
+  const ph = document.querySelector('.phone');
+  if (window.innerWidth <= 480){ ph.style.transform=''; ph.style.margin=''; return; }
+  const availH = window.innerHeight - 40;
+  const availW = window.innerWidth - 24;
+  const s = Math.min(1, availH/820, availW/410);
+  ph.style.transform = 'scale(' + s + ')';
+  ph.style.transformOrigin = 'center center';
+  ph.style.margin = (-(800*(1-s))/2) + 'px ' + (-(390*(1-s))/2) + 'px';
+}
+window.addEventListener('resize', fit);
+fit();
+</script>
+</body>
+</html>
